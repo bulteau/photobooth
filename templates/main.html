@@ -1,0 +1,195 @@
+<!DOCTYPE html style="background:#21245B;">
+<head>
+	<title>{{ title }}</title>
+	<script src="{{ url_for('static', filename='script/jquery-1.11.2.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='script/jquery.knob.min.js') }}"></script>
+	
+	<style>
+		html { 
+	  		margin:0;
+	  		padding:0;
+	  		-webkit-background-size: cover; /* pour anciens Chrome et Safari */
+	  		background-size: cover; /* version standardisée */
+			font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+		}
+		
+		.display-ready{
+			font-size: 100px;
+			margin-top: 250px;
+		}
+		
+		.display-ouistiti{
+			font-size: 150px;
+			margin-top: 250px;
+		}
+		
+		.display-countdown{
+			font-size: 600px;
+			margin-top: 0px;
+			position:relative;
+			top:-50px;
+		}
+		
+		.display-print{
+			font-size: 100px;
+			margin-top: 0px;
+		}
+	
+	</style>
+	<script type=text/javascript>
+		
+		var ERROR = "-1"
+		var DISPLAY_READY = "0";
+		var DISPLAY_COUNTDOWN = "1";
+		var DISPLAY_PRINT = "2";  
+		var DISPLAY_NO_PAPER = "20";  
+		
+		var DISPLAY_OUISTITI = "10";
+		var CURRENT_DISPLAY;
+		
+		var CURRENT_VAL_LOAD = "0";
+		
+		$(document).ready(function(){
+		
+		
+			//Initialisation du loader
+			$('.knob').knob({
+				value: 2,
+				        'readOnly': true,
+				        'width': 400,
+				        'height': 400,
+				        'dynamicDraw': true,
+				        'thickness': 0.1,
+				        'tickColorizeValues': true,
+				        'skin': 'tron'
+			});
+			
+			$.when(
+				    $('.knob').each(function(){
+				            $(this).animate({
+				    value: parseInt($(this).data('targetValue'))
+					}, {
+				    duration: 1000,
+				    easing: 'swing',
+				    progress: function () {
+				            $(this).val(Math.round(this.value)).trigger('change')
+				    }
+			});
+			})).then(function () {
+				    //myDelay();
+			});
+		
+		
+		
+			refreshTable();
+			$("#result").click(function(){
+					location.reload();
+			});
+		});
+		
+
+		function displayMessagePrint(){
+			$("#result").removeClass();					
+			$("#result").addClass("display-print");
+			$("#loader, input").show();
+			//$("#result").text("Impression en cours");
+			$("#result").text("Please wait");
+			$('.s').val(2).trigger("change");
+		}
+		
+		function displayMessageNoPaper(){
+			$("#result").text("Please load paper (behind the box)");
+		}
+		
+		  function refreshTable(){
+		  	$.getJSON('/_refresh'
+		  	  	, function(data) {
+					
+					console.log(data);
+					var typeResult;
+					if(data.result == "") {
+						typeResult = -1
+					} else {
+						var obj = jQuery.parseJSON(data.result);
+						typeResult = obj.id
+					}
+		
+					switch(typeResult){
+						case DISPLAY_READY:
+							$('#loader').hide();
+							$('html').css('background','#21245B');
+							CURRENT_DISPLAY = DISPLAY_READY;	
+							$("#result").removeClass();					
+							$("#result").addClass("display-ready");
+							$("#result").text("Press the button");
+							break;
+						case DISPLAY_COUNTDOWN:
+							$('html').css('background','#21245B');
+
+							if(obj.value == 0){
+								if(CURRENT_DISPLAY != DISPLAY_OUISTITI){
+									
+									CURRENT_DISPLAY = DISPLAY_OUISTITI;
+									$("#result").removeClass();					
+									$("#result").addClass("display-ouistiti");
+									$("#result").text("Say cheese!!!");
+									setTimeout(function(){displayMessagePrint();}, 4000);
+								}
+								
+							} else {
+								CURRENT_DISPLAY = DISPLAY_COUNTDOWN;
+								$("#result").removeClass();					
+								$("#result").addClass("display-countdown");
+								$("#result").text(obj.value);
+								
+							}
+							
+							break;
+						case DISPLAY_PRINT:
+							
+							
+							if(CURRENT_DISPLAY != DISPLAY_PRINT){
+								displayMessagePrint();
+								$('html').css('background','url(/static/photobooth_images/original/'+obj.file+') no-repeat fixed center center / cover rgba(0, 0, 0, 0)');
+								CURRENT_DISPLAY = DISPLAY_PRINT;
+								$('.s').val(obj.value).trigger("change");
+		                     }
+		                     
+		                     
+		 					//if(CURRENT_VAL_LOAD != obj.value){
+			 				$('.s').val(obj.value).trigger("change");
+			 				
+			 				CURRENT_VAL_LOAD = obj.value;
+			 				/*}
+			 				
+			 				$('.s').val(CURRENT_VAL_LOAD).trigger("change");*/
+							break;
+						case DISPLAY_NO_PAPER:
+							if(CURRENT_DISPLAY != DISPLAY_NO_PAPER){
+								displayMessageNoPaper();
+								$('html').css('background','url(/static/photobooth_images/original/'+obj.file+') no-repeat fixed center center / cover rgba(0, 0, 0, 0)');
+								CURRENT_DISPLAY = DISPLAY_NO_PAPER;
+							 }
+							CURRENT_VAL_LOAD = obj.value;
+							break;
+						case ERROR:
+							break;
+					}
+		
+
+					
+		  	  		setTimeout(refreshTable, 1000);
+		  	  });
+		  }
+	</script>
+
+</head>
+<body style="color:#FFF;">
+
+<div id="loader" style="margin:100px auto 0; width:400px; display:none;">
+	<input style="display:none;" class="knob s" data-targetValue="0" data-bgColor="transparent" data-fgColor="#FFF"></input>
+</div>
+<div id="result"  style="text-align:center;" class="display-ready"></div>
+
+</body> 
+</html>
